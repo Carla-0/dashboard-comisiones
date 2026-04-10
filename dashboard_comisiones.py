@@ -691,6 +691,7 @@ body {
         </div>
     </div>
     <div class="header-right">
+        <span class="record-count" id="lastUpdate" style="background:rgba(16,185,129,0.2);color:#d1fae5;">Actualizando...</span>
         <span class="record-count" id="recordCount">0 registros</span>
         <button class="refresh-btn" onclick="loadData()">
             <span>&#x21bb;</span> Actualizar
@@ -1051,6 +1052,9 @@ function renderDashboard(data) {
     document.getElementById('kpiPrimaNeta').textContent = fmt(k.total_prima_neta);
     document.getElementById('kpiPolizas').textContent = (k.total_polizas || 0).toLocaleString();
     document.getElementById('recordCount').textContent = (data.total_records || 0).toLocaleString() + ' registros';
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+    document.getElementById('lastUpdate').textContent = 'Actualizado: ' + timeStr;
 
     destroyCharts();
 
