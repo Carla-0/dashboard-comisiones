@@ -1044,6 +1044,12 @@ fetch('/api/logo').then(r => r.text()).then(svg => {
 
 // Initialize
 loadFilters().then(() => loadData());
+
+// Auto-refresh every 5 minutes (300000 ms)
+setInterval(() => {
+    console.log('Auto-refresh triggered');
+    loadData();
+}, 300000);
 </script>
 </body>
 </html>
