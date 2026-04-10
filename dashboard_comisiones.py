@@ -87,18 +87,13 @@ def fetch_all_data(filters=None):
                 if filters.get("inicio_hasta"):
                     query += f" AND {COLUMN_MAP['inicio_vigencia']} <= %s"
                     params.append(filters["inicio_hasta"])
-                if filters.get("producer"):
-                    query += f" AND {COLUMN_MAP['producer']} = %s"
-                    params.append(filters["producer"])
-                if filters.get("razon_social"):
-                    query += f" AND {COLUMN_MAP['razon_social']} = %s"
-                    params.append(filters["razon_social"])
-                if filters.get("aseguradora"):
-                    query += f" AND {COLUMN_MAP['aseguradora']} = %s"
-                    params.append(filters["aseguradora"])
-                if filters.get("ejecutivo"):
-                    query += f" AND {COLUMN_MAP['ejecutivo']} = %s"
-                    params.append(filters["ejecutivo"])
+                for fkey in ["producer", "razon_social", "aseguradora", "ejecutivo"]:
+                    if filters.get(fkey):
+                        values = [v.strip() for v in filters[fkey].split("||") if v.strip()]
+                        if values:
+                            placeholders = ",".join(["%s"] * len(values))
+                            query += f" AND {COLUMN_MAP[fkey]} IN ({placeholders})"
+                            params.extend(values)
 
             cursor.execute(query, params)
             rows = cursor.fetchall()
@@ -410,18 +405,18 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
-.filter-group select, .filter-group input {
+.filter-group input[type="date"] {
     padding: 7px 12px;
     border: 1px solid var(--border);
     border-radius: 6px;
     font-size: 13px;
     color: var(--text);
     background: white;
-    min-width: 160px;
+    min-width: 140px;
     outline: none;
     transition: border-color 0.2s;
 }
-.filter-group select:focus, .filter-group input:focus {
+.filter-group input[type="date"]:focus {
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(54, 66, 181, 0.1);
 }
@@ -435,10 +430,104 @@ body {
     font-weight: 500;
     transition: all 0.2s;
 }
-.btn-apply { background: var(--primary); color: white; }
-.btn-apply:hover { background: var(--primary-light); }
 .btn-clear { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
 .btn-clear:hover { background: #e5e7eb; }
+
+/* ─── Multi-Select Dropdown ─── */
+.ms-wrapper { position: relative; min-width: 180px; }
+.ms-trigger {
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text);
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    min-height: 34px;
+    transition: border-color 0.2s;
+}
+.ms-trigger:hover { border-color: #b0b8d1; }
+.ms-trigger.active { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(54,66,181,0.1); }
+.ms-trigger .ms-text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ms-trigger .ms-arrow { font-size: 10px; color: var(--text-muted); flex-shrink: 0; }
+.ms-badge {
+    background: var(--primary);
+    color: white;
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+.ms-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 280px;
+    max-height: 320px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    z-index: 200;
+    flex-direction: column;
+}
+.ms-dropdown.open { display: flex; }
+.ms-search {
+    padding: 8px 10px;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    outline: none;
+    border-radius: 8px 8px 0 0;
+}
+.ms-options {
+    overflow-y: auto;
+    flex: 1;
+    max-height: 240px;
+}
+.ms-option {
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.1s;
+}
+.ms-option:hover { background: #f0f2ff; }
+.ms-option input[type="checkbox"] {
+    accent-color: var(--primary);
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.ms-option span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ms-footer {
+    padding: 6px 10px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.ms-footer button {
+    background: none;
+    border: none;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+.ms-footer .ms-select-all { color: var(--primary); }
+.ms-footer .ms-select-all:hover { background: #eef2ff; }
+.ms-footer .ms-clear-btn { color: var(--danger); }
+.ms-footer .ms-clear-btn:hover { background: #fef2f2; }
+.ms-count { font-size: 11px; color: var(--text-muted); }
 
 /* ─── Main Content ─── */
 .main { padding: 24px 32px; max-width: 1600px; margin: 0 auto; }
@@ -621,23 +710,22 @@ body {
     </div>
     <div class="filter-group">
         <label>Producer</label>
-        <select id="filterProducer"><option value="">Todos</option></select>
+        <div class="ms-wrapper" id="msProducer" data-key="producer"></div>
     </div>
     <div class="filter-group">
         <label>Razón Social</label>
-        <select id="filterRazonSocial"><option value="">Todos</option></select>
+        <div class="ms-wrapper" id="msRazonSocial" data-key="razon_social"></div>
     </div>
     <div class="filter-group">
         <label>Aseguradora</label>
-        <select id="filterAseguradora"><option value="">Todos</option></select>
+        <div class="ms-wrapper" id="msAseguradora" data-key="aseguradora"></div>
     </div>
     <div class="filter-group">
         <label>Ejecutivo</label>
-        <select id="filterEjecutivo"><option value="">Todos</option></select>
+        <div class="ms-wrapper" id="msEjecutivo" data-key="ejecutivo"></div>
     </div>
     <div class="filter-actions">
-        <button class="btn-filter btn-apply" onclick="loadData()">Aplicar</button>
-        <button class="btn-filter btn-clear" onclick="clearFilters()">Limpiar</button>
+        <button class="btn-filter btn-clear" onclick="clearFilters()">Limpiar filtros</button>
     </div>
 </div>
 
@@ -786,24 +874,143 @@ function destroyCharts() {
     charts = {};
 }
 
+// ─── Multi-Select Component ───
+const multiSelects = {};
+let debounceTimer = null;
+
+function debounceLoadData() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => loadData(), 400);
+}
+
+function createMultiSelect(wrapperId, options) {
+    const wrapper = document.getElementById(wrapperId);
+    if (!wrapper) return;
+    const key = wrapper.dataset.key;
+    const selected = new Set();
+
+    wrapper.innerHTML = `
+        <div class="ms-trigger" tabindex="0">
+            <span class="ms-text">Todos</span>
+            <span class="ms-arrow">&#9662;</span>
+        </div>
+        <div class="ms-dropdown">
+            <input class="ms-search" type="text" placeholder="Buscar...">
+            <div class="ms-options"></div>
+            <div class="ms-footer">
+                <button class="ms-select-all">Seleccionar todos</button>
+                <span class="ms-count"></span>
+                <button class="ms-clear-btn">Limpiar</button>
+            </div>
+        </div>
+    `;
+
+    const trigger = wrapper.querySelector('.ms-trigger');
+    const dropdown = wrapper.querySelector('.ms-dropdown');
+    const searchInput = wrapper.querySelector('.ms-search');
+    const optionsContainer = wrapper.querySelector('.ms-options');
+    const countSpan = wrapper.querySelector('.ms-count');
+
+    function renderOptions(filter = '') {
+        const lower = filter.toLowerCase();
+        optionsContainer.innerHTML = '';
+        const filtered = options.filter(o => o.toLowerCase().includes(lower));
+        filtered.forEach(opt => {
+            const div = document.createElement('div');
+            div.className = 'ms-option';
+            div.innerHTML = `<input type="checkbox" ${selected.has(opt)?'checked':''}><span title="${opt}">${opt}</span>`;
+            div.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (selected.has(opt)) selected.delete(opt); else selected.add(opt);
+                div.querySelector('input').checked = selected.has(opt);
+                updateTrigger();
+                debounceLoadData();
+            });
+            optionsContainer.appendChild(div);
+        });
+        countSpan.textContent = filtered.length + ' items';
+    }
+
+    function updateTrigger() {
+        const text = wrapper.querySelector('.ms-text');
+        const oldBadge = trigger.querySelector('.ms-badge');
+        if (oldBadge) oldBadge.remove();
+        if (selected.size === 0) {
+            text.textContent = 'Todos';
+        } else if (selected.size === 1) {
+            const val = [...selected][0];
+            text.textContent = val.length > 20 ? val.substring(0,18)+'...' : val;
+        } else {
+            text.textContent = [...selected].slice(0,2).map(v => v.length > 12 ? v.substring(0,10)+'..' : v).join(', ');
+            const badge = document.createElement('span');
+            badge.className = 'ms-badge';
+            badge.textContent = selected.size;
+            trigger.insertBefore(badge, trigger.querySelector('.ms-arrow'));
+        }
+    }
+
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.ms-dropdown.open').forEach(d => { if(d !== dropdown) d.classList.remove('open'); });
+        document.querySelectorAll('.ms-trigger.active').forEach(t => { if(t !== trigger) t.classList.remove('active'); });
+        dropdown.classList.toggle('open');
+        trigger.classList.toggle('active');
+        if (dropdown.classList.contains('open')) { searchInput.value = ''; renderOptions(); searchInput.focus(); }
+    });
+
+    searchInput.addEventListener('input', () => renderOptions(searchInput.value));
+    searchInput.addEventListener('click', e => e.stopPropagation());
+
+    wrapper.querySelector('.ms-select-all').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const lower = searchInput.value.toLowerCase();
+        options.filter(o => o.toLowerCase().includes(lower)).forEach(o => selected.add(o));
+        renderOptions(searchInput.value);
+        updateTrigger();
+        debounceLoadData();
+    });
+
+    wrapper.querySelector('.ms-clear-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        selected.clear();
+        renderOptions(searchInput.value);
+        updateTrigger();
+        debounceLoadData();
+    });
+
+    renderOptions();
+
+    multiSelects[key] = {
+        getSelected: () => [...selected],
+        clear: () => { selected.clear(); updateTrigger(); renderOptions(); },
+        setOptions: (newOpts) => { options = newOpts; renderOptions(); }
+    };
+}
+
+// Close dropdowns on outside click
+document.addEventListener('click', () => {
+    document.querySelectorAll('.ms-dropdown.open').forEach(d => d.classList.remove('open'));
+    document.querySelectorAll('.ms-trigger.active').forEach(t => t.classList.remove('active'));
+});
+
 function getFilters() {
-    return {
+    const f = {
         inicio_desde: document.getElementById('filterDesde').value,
         inicio_hasta: document.getElementById('filterHasta').value,
-        producer: document.getElementById('filterProducer').value,
-        razon_social: document.getElementById('filterRazonSocial').value,
-        aseguradora: document.getElementById('filterAseguradora').value,
-        ejecutivo: document.getElementById('filterEjecutivo').value
     };
+    ['producer','razon_social','aseguradora','ejecutivo'].forEach(key => {
+        if (multiSelects[key]) {
+            const sel = multiSelects[key].getSelected();
+            if (sel.length > 0) f[key] = sel.join('||');
+        }
+    });
+    return f;
 }
 
 function clearFilters() {
     document.getElementById('filterDesde').value = '';
     document.getElementById('filterHasta').value = '';
-    document.getElementById('filterProducer').value = '';
-    document.getElementById('filterRazonSocial').value = '';
-    document.getElementById('filterAseguradora').value = '';
-    document.getElementById('filterEjecutivo').value = '';
+    Object.values(multiSelects).forEach(ms => ms.clear());
     loadData();
 }
 
@@ -811,19 +1018,10 @@ async function loadFilters() {
     try {
         const resp = await fetch('/api/filters');
         const data = await resp.json();
-        ['producer','razon_social','aseguradora','ejecutivo'].forEach(key => {
-            const select = document.getElementById('filter' + key.split('_').map(w=>w[0].toUpperCase()+w.slice(1)).join(''));
-            if (!select) return;
-            const current = select.value;
-            select.innerHTML = '<option value="">Todos</option>';
-            (data[key] || []).forEach(v => {
-                const opt = document.createElement('option');
-                opt.value = v;
-                opt.textContent = v;
-                select.appendChild(opt);
-            });
-            select.value = current;
-        });
+        createMultiSelect('msProducer', data.producer || []);
+        createMultiSelect('msRazonSocial', data.razon_social || []);
+        createMultiSelect('msAseguradora', data.aseguradora || []);
+        createMultiSelect('msEjecutivo', data.ejecutivo || []);
     } catch(e) { console.error('Error loading filters:', e); }
 }
 
@@ -1041,6 +1239,10 @@ fetch('/api/logo').then(r => r.text()).then(svg => {
     const svgEl = document.getElementById('logoContainer').querySelector('svg');
     if (svgEl) { svgEl.style.height = '48px'; svgEl.style.width = 'auto'; }
 });
+
+// Auto-apply on date change
+document.getElementById('filterDesde').addEventListener('change', debounceLoadData);
+document.getElementById('filterHasta').addEventListener('change', debounceLoadData);
 
 // Initialize
 loadFilters().then(() => loadData());
