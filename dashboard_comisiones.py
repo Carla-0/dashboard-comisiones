@@ -28,12 +28,13 @@ except ImportError:
     sys.exit(1)
 
 # ─── Configuración de Base de Datos ───
-# Usa variables de entorno para seguridad, con valores por defecto para uso local
+# Usa variables de entorno para seguridad
+# Para uso local, crea un archivo .env o configura las variables antes de ejecutar
 DB_CONFIG = {
-    "host": os.environ.get("DB_HOST", "34.125.156.253"),
-    "database": os.environ.get("DB_NAME", "zeruk"),
-    "user": os.environ.get("DB_USER", "mantenedor"),
-    "password": os.environ.get("DB_PASSWORD", "DDI!dev%2024"),
+    "host": os.environ.get("DB_HOST", ""),
+    "database": os.environ.get("DB_NAME", ""),
+    "user": os.environ.get("DB_USER", ""),
+    "password": os.environ.get("DB_PASSWORD", ""),
     "charset": "utf8mb4",
     "cursorclass": pymysql.cursors.DictCursor,
 }
