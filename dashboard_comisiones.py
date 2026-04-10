@@ -641,22 +641,48 @@ body {
 .loading-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(255,255,255,0.85);
+    background: rgba(255,255,255,0.9);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 999;
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(6px);
 }
-.spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--border);
-    border-top-color: var(--primary);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+.loading-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+.loading-logo {
+    animation: logoSpin 1.8s ease-in-out infinite;
+}
+.loading-logo svg {
+    height: 80px;
+    width: auto;
+    filter: drop-shadow(0 4px 12px rgba(54, 66, 181, 0.3));
+}
+@keyframes logoSpin {
+    0% { transform: rotateY(0deg) scale(1); }
+    50% { transform: rotateY(180deg) scale(1.05); }
+    100% { transform: rotateY(360deg) scale(1); }
+}
+.loading-text {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--primary);
+    letter-spacing: 0.5px;
+}
+.loading-dots::after {
+    content: '';
+    animation: dots 1.5s steps(4, end) infinite;
+}
+@keyframes dots {
+    0% { content: ''; }
+    25% { content: '.'; }
+    50% { content: '..'; }
+    75% { content: '...'; }
+}
 .hidden { display: none !important; }
 
 /* ─── Responsive ─── */
@@ -675,9 +701,9 @@ body {
 <body>
 
 <div class="loading-overlay" id="loadingOverlay">
-    <div style="text-align:center;">
-        <div class="spinner"></div>
-        <p style="margin-top:12px;color:var(--text-muted);font-size:14px;">Cargando datos...</p>
+    <div class="loading-content">
+        <div class="loading-logo" id="loadingLogoSvg"></div>
+        <div class="loading-text">Cargando datos<span class="loading-dots"></span></div>
     </div>
 </div>
 
@@ -1237,11 +1263,21 @@ function renderDashboard(data) {
     });
 }
 
-// Load logo
-fetch('/api/logo').then(r => r.text()).then(svg => {
+// Load white logo for header
+fetch('/api/logo-white').then(r => r.text()).then(svg => {
     document.getElementById('logoContainer').innerHTML = svg;
     const svgEl = document.getElementById('logoContainer').querySelector('svg');
     if (svgEl) { svgEl.style.height = '48px'; svgEl.style.width = 'auto'; }
+});
+
+// Load original logo for loading spinner
+fetch('/api/logo').then(r => r.text()).then(svg => {
+    const el = document.getElementById('loadingLogoSvg');
+    if (el) {
+        el.innerHTML = svg;
+        const svgEl = el.querySelector('svg');
+        if (svgEl) { svgEl.style.height = '80px'; svgEl.style.width = 'auto'; }
+    }
 });
 
 // Auto-apply on date change
@@ -1301,6 +1337,9 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
 
         elif path == "/api/logo":
             self.send_svg(LOGO_SVG)
+
+        elif path == "/api/logo-white":
+            self.send_svg(LOGO_SVG.replace('fill: #042644;', 'fill: #ffffff;'))
 
         elif path == "/api/filters":
             try:
