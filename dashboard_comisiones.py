@@ -87,7 +87,7 @@ def fetch_all_data(filters=None):
                 if filters.get("inicio_hasta"):
                     query += f" AND {COLUMN_MAP['inicio_vigencia']} <= %s"
                     params.append(filters["inicio_hasta"])
-                for fkey in ["producer", "razon_social", "aseguradora", "ejecutivo"]:
+                for fkey in ["producer", "razon_social", "aseguradora", "ejecutivo", "estado_pago"]:
                     if filters.get(fkey):
                         values = [v.strip() for v in filters[fkey].split("||") if v.strip()]
                         if values:
@@ -107,7 +107,7 @@ def fetch_filter_options():
     try:
         with conn.cursor() as cursor:
             options = {}
-            for key in ["producer", "razon_social", "aseguradora", "ejecutivo"]:
+            for key in ["producer", "razon_social", "aseguradora", "ejecutivo", "estado_pago"]:
                 col = COLUMN_MAP[key]
                 cursor.execute(f"SELECT DISTINCT {col} FROM {TABLE} WHERE {col} IS NOT NULL AND {col} != '' ORDER BY {col}")
                 options[key] = [row[col] for row in cursor.fetchall()]
@@ -751,6 +751,10 @@ body {
         <label>Ejecutivo</label>
         <div class="ms-wrapper" id="msEjecutivo" data-key="ejecutivo"></div>
     </div>
+    <div class="filter-group">
+        <label>Estado de Pago</label>
+        <div class="ms-wrapper" id="msEstadoPago" data-key="estado_pago"></div>
+    </div>
     <div class="filter-actions">
         <button class="btn-filter btn-clear" onclick="clearFilters()">Limpiar filtros</button>
     </div>
@@ -1025,7 +1029,7 @@ function getFilters() {
         inicio_desde: document.getElementById('filterDesde').value,
         inicio_hasta: document.getElementById('filterHasta').value,
     };
-    ['producer','razon_social','aseguradora','ejecutivo'].forEach(key => {
+    ['producer','razon_social','aseguradora','ejecutivo','estado_pago'].forEach(key => {
         if (multiSelects[key]) {
             const sel = multiSelects[key].getSelected();
             if (sel.length > 0) f[key] = sel.join('||');
@@ -1049,6 +1053,7 @@ async function loadFilters() {
         createMultiSelect('msRazonSocial', data.razon_social || []);
         createMultiSelect('msAseguradora', data.aseguradora || []);
         createMultiSelect('msEjecutivo', data.ejecutivo || []);
+        createMultiSelect('msEstadoPago', data.estado_pago || []);
     } catch(e) { console.error('Error loading filters:', e); }
 }
 
